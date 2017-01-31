@@ -1,0 +1,5 @@
+[twitter]
+c_key = this_is_your_consumer_key
+c_secret = this_is_your_consumer_secret_keep_it_safe
+a_key = this_is_your_access_token_key
+a_secret = this_is_your_access_token_secret_keep_it_safe

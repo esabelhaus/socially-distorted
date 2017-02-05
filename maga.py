@@ -1,14 +1,12 @@
 from TwitterAPI import TwitterAPI
-import pprint
-import json
 import configparser
 import os
 from pymongo import MongoClient
 
 # initialize mongo connection, set collection
 client = MongoClient()
-db = client.test_database
-collection = db.tweets
+db = client.twitter
+collection = db.maga
 
 # create a config object
 config = configparser.ConfigParser()
@@ -32,41 +30,30 @@ r = api.request('statuses/filter', {'track':'#MAGA'})
 # iterate over incoming tweets from filter
 for item in r.get_iterator():
     # initialize data for dynamic population conditionally
-    tweet_entities = {}
-    screen_name = ""
-    name = ""
-    tweet_text = ""
-    profile_img_url = ""
+    tweet = {}
     if 'message' in item and item['code'] == 88:
         print('SUSPEND, RATE LIMIT EXCEEDED: %s\n' % item['message'])
         break
 
     if 'text' in item:
-        #pprint.pprint(item['text'])
-        tweet_text = item['text']
+        tweet['text'] = item['text']
 
     if 'user' in item:
-        #pprint.pprint(json.dumps(item['user']))
-        screen_name = item['user']['screen_name']
-        name = item['user']['name']
-        profile_img_url = item['user']['profile_image_url']
+        tweet['screen_name'] = item['user']['screen_name']
+        tweet['name'] = item['user']['name']
+        tweet['profile_img_url'] = item['user']['profile_image_url']
+
+    if 'retweeted' in item:
+        tweet['retweet_or_quoted'] = item['retweeted']
 
     if 'retweeted_status' in item:
-        #pprint.pprint(json.dumps(item['retweeted_status']['entities']))
-        tweet_entities = item['retweeted_status']['entities']
+        tweet['entities'] = item['retweeted_status']['entities']
 
     if 'quoted_status' in item:
-        #pprint.pprint(json.dumps(item['quoted_status']['entities']))
-        tweet_entities = item['quoted_status']['entities']
+        tweet['retweet_or_quoted'] = True
+        tweet['entities'] = item['quoted_status']['entities']
 
     if 'entities' in item:
-        tweet_entities = item['entities']
+        tweet['entities'] = item['entities']
 
-    tweet = {}
-    tweet['screen_name'] = screen_name
-    tweet['name'] = name
-    tweet['entities'] = tweet_entities
-    tweet['profile_img_url'] = profile_img_url
-    tweet['text'] = tweet_text
-    #pprint.pprint(json.dumps(tweet))
     collection.insert_one(tweet)
